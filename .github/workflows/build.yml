@@ -1,33 +1,54 @@
-name: Android APK Derle
+
+name: Android APK Build
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: # GitHub üzerinden manuel olarak tetikleyebilmek için
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Kodu İndir
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: JDK 17 Kur
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
 
-      - name: Gradlew Çalıştırma İzni Ver
-        run: chmod +x gradlew
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Debug APK Oluştur
-        run: ./gradlew assembleDebug
+      - name: Install Android SDK Packages
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-36"
+          sdkmanager "build-tools;36.0.0"
 
-      - name: APK Dosyasını Yükle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Build APK
+        run: |
+          gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: CrystalX-AI-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
           
